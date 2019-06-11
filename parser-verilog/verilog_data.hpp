@@ -201,16 +201,29 @@ namespace verilog {
   using NetConcat = std::variant<std::string, NetBit, NetRange, Constant>;
 
   struct Instance {
+    // Capturing [my_module] #(parameters)  inst_k  (net1, net2, ... , net n);
     std::string module_name;
+    // Capturing  my_module [#(parameters)] inst_k  (net1, net2, ... , net n);
+    std::vector<verilog::Constant> parameters;
+    // Capturing  my_module  #(parameters) [inst_k] (net1, net2, ... , net n);
     std::string inst_name;
-  
-    // pin_names might be empty. e.g. my_module m1(net1, net2);
+    // Capturing  my_module  #(parameters)  inst_k [(net1, net2, ... , net n)];
     std::vector<std::variant<std::string, NetBit, NetRange>> pin_names;
     std::vector<std::vector<NetConcat>> net_names;
   };
 
   inline std::ostream& operator<<(std::ostream& os, const Instance& inst) {  
-    os << inst.module_name << ' ' << inst.inst_name << '(';
+    os << inst.module_name << ' ';
+
+    if(inst.parameters.size() > 0){
+
+      os << "#(";
+      for(unsigned int i = 0; i < inst.parameters.size(); ++i)
+        os << inst.parameters[i];
+      os << ") ";
+    }
+
+    os << inst.inst_name << '(';
 
     if(!inst.pin_names.empty()){
       for(size_t i=0; i<inst.pin_names.size(); i++){

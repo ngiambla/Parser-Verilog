@@ -52,6 +52,7 @@
 %left UMINUS
 
 %token              END    0     "end of file"
+%token              SPACE
 %token              NEWLINE
 %token              UNDEFINED 
 
@@ -62,7 +63,7 @@
 %token<verilog::Constant> INTEGER BINARY OCTAL DECIMAL HEX REAL EXP
 
 /* Keyword tokens */
-%token MODULE ENDMODULE INPUT OUTPUT INOUT REG WIRE WAND WOR TRI TRIOR TRIAND SUPPLY0 SUPPLY1 ASSIGN
+%token MODULE PARAMETER ENDMODULE INPUT OUTPUT INOUT REG WIRE WAND WOR TRI TRIOR TRIAND SUPPLY0 SUPPLY1 ASSIGN
 
 
 /* Nonterminal Symbols */
@@ -79,7 +80,14 @@
 %type<std::vector<std::variant<std::string, verilog::NetBit, verilog::NetRange>>> lhs lhs_concat lhs_exprs lhs_expr
 %type<std::vector<verilog::NetConcat>> rhs rhs_concat rhs_exprs rhs_expr 
 
+// For Instance Collection
 %type<verilog::Instance> instance  
+// +
+// | -- For Parameter Collection
+%type<std::vector<verilog::Constant>> parameters 
+%type<std::vector<verilog::Constant>> param_exprs 
+%type<verilog::Constant> param_expr
+// | -- For instance pins
 %type<std::pair<std::vector<std::variant<std::string, NetBit, NetRange>>, std::vector<std::vector<verilog::NetConcat>>>> inst_pins nets_by_name 
 
 %type<std::vector<std::vector<verilog::NetConcat>>> nets_by_position
@@ -361,6 +369,8 @@ instance
   | valid_name parameters valid_name '(' inst_pins ')' ';'
     { 
       std::swap($$.module_name, $1); 
+      //std::swap($$.parameters, $2);
+      $$.parameters = $2;
       std::swap($$.inst_name, $3); 
       std::swap($$.pin_names, std::get<0>($5));  
       std::swap($$.net_names, std::get<1>($5));  
@@ -451,17 +461,25 @@ net_by_name
 
 // parameters are ignored for now
 parameters 
-  : '#' '(' param_exprs ')'
+  : PARAMETER '(' param_exprs ')' {
+    $$ = $3; 
+  }
   ;
 
 param_exprs
-  : param_expr 
+  : param_expr {
+    $$.push_back($1);
+  }
   | param_exprs ',' param_expr
   ;
 
 param_expr 
   : valid_name 
   | '`' valid_name 
+  | '.' valid_name '(' constant ')'
+    {
+      $$ = $4; 
+    }
   | constant 
   | '-' param_expr %prec UMINUS 
   | param_expr '+' param_expr

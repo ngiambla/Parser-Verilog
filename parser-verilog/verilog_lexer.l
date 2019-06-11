@@ -110,6 +110,7 @@ EXP            [-+]?[0-9]+"."?[0-9]*"E"[-+]?[0-9]+
 }
 
 module    { return token::MODULE; }
+#         { return token::PARAMETER; }
 endmodule { return token::ENDMODULE; }
 input     { return token::INPUT; } 
 output    { return token::OUTPUT; }
